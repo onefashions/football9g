@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Table — Rows stay • Row=5s • Column=3s (Apps Script)</title>
+  <meta name="description" content="Responsive table that loads data from Google Apps Script and reveals rows/columns over time.">
+  <style>
+    :root{
+      --bg:#051027; --card:rgba(255,255,255,0.03);
+      --muted:#9fb0d6; --accent:#6b8cff; --text:#eaf1ff;
+    }
+    html,body{margin:0;background:linear-gradient(180deg,var(--bg),#031022);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;}
+    .wrap{max-width:100%;margin:0 auto;}
+    .card{background:var(--card);border-radius:12px;padding:12px;box-shadow:0 8px 26px rgba(2,6,23,0.65);}
+    h3{margin:0 0 8px 0;font-size:16px}
+    .controls{display:flex;gap:8px;margin-bottom:8px}
+    .btn{background:transparent;color:var(--text);border:1px solid rgba(255,255,255,0.06);padding:6px 8px;border-radius:8px;font-size:13px;cursor:pointer}
+    .btn.warn{border-color:rgba(255,80,80,0.18);color:#ffd6d6}
+
+    /* Table base (desktop) */
+    .table-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;display:table;}
+    thead th{ text-align:left;padding:8px;font-weight:700;background:linear-gradient(90deg,rgba(107,140,255,0.12),rgba(107,140,255,0.04));border-radius:6px;color:#fff;font-size:13px;}
+    tbody tr{display:table-row;}
+    tbody td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,0.03);opacity:0;transform:translateY(8px);transition:opacity .45s ease, transform .45s ease;font-size:14px;vertical-align:middle;}
+    tbody td.show{opacity:1;transform:translateY(0);}
+
+    /* Mobile: keep semantics but look like cards */
+    @media (max-width:480px){
+      thead{display:none}
+      table,tbody,tr,td{display:block;width:100%}
+      tbody tr{display:block;margin-bottom:10px;background:rgba(255,255,255,0.02);border-radius:10px;padding:8px}
+      td{display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid rgba(255,255,255,0.04)}
+      td:last-child{border-bottom:0}
+      td::before{content:attr(data-label);font-weight:600;color:var(--muted);margin-right:8px}
+      .idx{background:linear-gradient(90deg, rgba(107,140,255,0.14), rgba(107,140,255,0.06));padding:6px 8px;border-radius:8px;font-weight:700;color:#fff}
+    }
+
+    .note{font-size:12px;color:var(--muted);margin-top:8px;text-align:center}
+    .status{font-size:13px;color:var(--muted);margin-bottom:6px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" role="region" aria-label="Table slideshow">
+    
+
+      <div class="controls" aria-hidden="false" style="display: none;">
+        <div class="status" id="status">Loading data…</div>
+        <!-- Kept minimal; user said no more changes — these are optional helpers -->
+        <button id="reloadBtn" class="btn">Reload</button>
+        <button id="stopBtn" class="btn warn">Stop Anim</button>
+      </div>
+
+      <div class="table-w rap">
+        <table aria-live="polite" role="table">
+          <thead id="tableHead">
+            <tr><th style="width:48px">#</th><th>Name</th><th>Role</th><th style="width:72px">Score</th></tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+/*
+  COMPLETE client page:
+  - Replace WEB_APP_URL with your deployed Apps Script Web App URL (exec).
+  - Apps Script should return JSON array of objects (first row as header).
+  - Behavior: For each rowIndex, rowStart = rowIndex * ROW_DURATION.
+              Each cell of that row will show at time = rowStart + colIndex * COL_DELAY.
+  - Rows/cells, once shown, remain visible.
+*/
+
+// ========== CONFIG: paste your deployed Apps Script Web App URL here ==========
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyvoV0DgsdXNHdsdQOSDqGLe2uER2Q59kUrHS2eI63Dh8CNCDDoVyJ1-uqtfmmXE1YV/exec";
+// ============================================================================
+
+const ROW_DURATION = 6000; // 5 seconds (row spacing)
+const COL_DELAY = 500;    // 3 seconds (per column delay)
+
+// DOM refs
+const tableBody = document.getElementById('tableBody');
+const tableHead = document.getElementById('tableHead');
+const statusEl = document.getElementById('status');
+const reloadBtn = document.getElementById('reloadBtn');
+const stopBtn = document.getElementById('stopBtn');
+
+let scheduledTimers = []; // to clear if reload/stop
+
+function clearScheduled(){
+  scheduledTimers.forEach(t => clearTimeout(t));
+  scheduledTimers = [];
+}
+
+// Simple JSONP loader using injected script tag
+function loadJSONP(url){
+  return new Promise((resolve, reject) => {
+    const cbName = 'gs_cb_' + Math.random().toString(36).slice(2);
+    window[cbName] = function(data){
+      resolve(data);
+      // cleanup
+      try { delete window[cbName]; } catch(e){ window[cbName] = null; }
+      const s = document.getElementById(cbName);
+      if (s) s.parentNode.removeChild(s);
+    };
+    const script = document.createElement('script');
+    script.id = cbName;
+    script.src = url + (url.indexOf('?') === -1 ? '?' : '&') + 'callback=' + cbName;
+    script.onerror = function(e){
+      reject(new Error('JSONP load failed'));
+      try { delete window[cbName]; } catch(e){}
+      const s = document.getElementById(cbName);
+      if (s) s.parentNode.removeChild(s);
+    };
+    document.body.appendChild(script);
+  });
+}
+
+// Build table from array of objects
+function buildTable(data){
+  tableBody.innerHTML = '';
+  // Build header if keys available
+  if (!data || !data.length){
+    tableBody.innerHTML = '<tr><td colspan="4">No data</td></tr>';
+    return;
+  }
+
+  const headers = Object.keys(data[0]);
+
+  // build thead dynamically to match sheet headers (keeps semantics)
+  const thHtml = headers.map((h,i)=>{
+    // try to keep width for first and last as earlier
+    if (i === 0) return '<th style="width:48px">'+escapeHtml(h)+'</th>';
+    if (i === headers.length-1) return '<th style="width:72px">'+escapeHtml(h)+'</th>';
+    return '<th>'+escapeHtml(h)+'</th>';
+  }).join('');
+  tableHead.innerHTML = '<tr>' + thHtml + '</tr>';
+
+  // build tbody rows
+  data.forEach((rowObj, rIndex) => {
+    const tr = document.createElement('tr');
+    headers.forEach(h => {
+      const td = document.createElement('td');
+      td.setAttribute('data-label', h);
+      td.textContent = rowObj[h] != null ? rowObj[h] : '';
+      tr.appendChild(td);
+    });
+    tableBody.appendChild(tr);
+  });
+}
+
+// schedule animations according to requested timings
+function scheduleAnimations(){
+  clearScheduled();
+  const rows = Array.from(tableBody.querySelectorAll('tr'));
+  rows.forEach((row, rowIndex) => {
+    const cells = Array.from(row.querySelectorAll('td'));
+    const rowStart = rowIndex * ROW_DURATION;
+    cells.forEach((cell, colIndex) => {
+      const showTime = rowStart + colIndex * COL_DELAY;
+      const t = setTimeout(() => {
+        cell.classList.add('show');
+      }, showTime);
+      scheduledTimers.push(t);
+    });
+  });
+}
+
+// utility escape
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; }); }
+
+// main loader
+async function loadAndRun(){
+  try {
+    statusEl.textContent = 'Loading data…';
+    clearScheduled();
+    tableBody.innerHTML = '';
+    const data = await loadJSONP(WEB_APP_URL);
+    if (!data || (Array.isArray(data) && data.length === 0)){
+      statusEl.textContent = 'No data';
+      tableBody.innerHTML = '<tr><td colspan="4">No data</td></tr>';
+      return;
+    }
+    // data expected as array of objects (keys from header row)
+    buildTable(data);
+    statusEl.textContent = 'Animating…';
+    scheduleAnimations();
+  } catch (err){
+    console.error(err);
+    statusEl.textContent = 'Load error';
+    tableBody.innerHTML = '<tr><td colspan="4">Error loading data. Check Apps Script URL and deploy settings.</td></tr>';
+  }
+}
+
+// controls
+reloadBtn.addEventListener('click', () => {
+  clearScheduled();
+  loadAndRun();
+});
+stopBtn.addEventListener('click', () => {
+  clearScheduled();
+  statusEl.textContent = 'Animation stopped';
+});
+
+// start automatically
+if (WEB_APP_URL.indexOf('REPLACE_WITH_YOURS') !== -1){
+  // remind user to replace link
+  statusEl.textContent = 'Replace WEB_APP_URL in the HTML with your Apps Script URL and reload.';
+  tableBody.innerHTML = '<tr><td colspan="4">Replace WEB_APP_URL placeholder with your deployed Apps Script Web App URL.</td></tr>';
+} else {
+  loadAndRun();
+}
+</script>
+</body>
+</html>

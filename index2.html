@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Auto Reveal Table Rows (5s interval)</title>
+
+  <!-- Bootstrap 5 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    /* Simple styling for the table and reveal animation */
+    body {
+      background: linear-gradient(180deg, #0f172a 0%, #0b1220 100%);
+      color: #e6eef8;
+      padding: 2rem;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.03);
+      border: 0;
+      box-shadow: 0 6px 20px rgba(2,6,23,0.6);
+    }
+
+    table {
+      --accent: rgba(99,102,241,0.12);
+      width: 100%;
+      border-collapse: collapse;
+      color: #e6eef8;
+    }
+
+    thead th {
+      background: rgba(99,102,241,0.18);
+      color: #fff;
+      font-weight: 600;
+      border-bottom: 2px solid rgba(255,255,255,0.06);
+    }
+
+    tbody tr {
+      background: rgba(255,255,255,0.02);
+      transition: transform 400ms ease, opacity 400ms ease;
+      transform-origin: left center;
+      opacity: 0;            /* initially hidden */
+      transform: translateX(-20px) scale(0.995);
+    }
+
+    /* visible row state */
+    tbody tr.visible {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+
+    /* subtle zebra */
+    tbody tr:nth-child(odd) { background: rgba(255,255,255,0.01); }
+    tbody tr:nth-child(even){ background: rgba(255,255,255,0.03); }
+
+    /* responsive tweaks */
+    @media (max-width: 576px) {
+      .table-responsive { font-size: 13px; }
+      thead { display: none; } /* optional: hide header on very small screens */
+      tbody td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        padding: 0.6rem 0.5rem;
+      }
+      tbody tr { margin-bottom: 0.6rem; border-radius: 8px; overflow: hidden; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="row justify-content-center mb-4">
+      <div class="col-12 col-md-10">
+        <div class="card p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h4 class="m-0">Live Reveal Table (Every 5 seconds)</h4>
+            <div>
+              <button id="startBtn" class="btn btn-sm btn-outline-light me-1">Start</button>
+              <button id="stopBtn" class="btn btn-sm btn-outline-danger">Stop</button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-borderless text-white mb-0">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>Score</th>
+                </tr>
+              </thead>
+              <tbody id="autoTable">
+                <tr><td>1</td><td>Alice</td><td>Designer</td><td>92</td></tr>
+                <tr><td>2</td><td>Bob</td><td>Developer</td><td>88</td></tr>
+                <tr><td>3</td><td>Carla</td><td>PM</td><td>85</td></tr>
+                <tr><td>4</td><td>Daniel</td><td>Tester</td><td>81</td></tr>
+                <tr><td>5</td><td>Emma</td><td>DevOps</td><td>79</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <small class="text-muted mt-2 d-block">Rows will reveal one-by-one every <strong>5 seconds</strong>. Use Start/Stop to control.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS (optional, used only for utility) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    /**
+     * Auto reveal table rows every 5 seconds.
+     * Default behavior: cumulative reveal (previous rows remain visible).
+     * To change interval: edit INTERVAL_MS.
+     * To make "only one row visible at a time", see comment below.
+     */
+
+    const INTERVAL_MS = 5000; // 5 seconds
+    const tbody = document.getElementById('autoTable');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    let currentIndex = 0;
+    let timerId = null;
+
+    function revealNextRow() {
+      if (currentIndex >= rows.length) {
+        // If you want to stop after last row, uncomment the next line:
+        // stopAuto();
+        // Or, to loop from start again, reset index:
+        currentIndex = 0;
+        // Also hide all rows first so loop feels smooth (optional)
+        rows.forEach(r => r.classList.remove('visible'));
+      }
+
+      // Show current row
+      const row = rows[currentIndex];
+      row.classList.add('visible');
+
+      // If you want "only one visible at a time":
+      // uncomment next block and comment out row.classList.add(...) above
+      /*
+      rows.forEach((r, i) => {
+        if (i === currentIndex) r.classList.add('visible');
+        else r.classList.remove('visible');
+      });
+      */
+
+      currentIndex++;
+    }
+
+    function startAuto() {
+      if (timerId) return; // already running
+      // If starting fresh and all rows hidden, reveal first immediately (optional)
+      if (currentIndex === 0 && !rows[0].classList.contains('visible')) {
+        revealNextRow();
+      }
+      timerId = setInterval(revealNextRow, INTERVAL_MS);
+    }
+
+    function stopAuto() {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+    }
+
+    // Buttons
+    document.getElementById('startBtn').addEventListener('click', startAuto);
+    document.getElementById('stopBtn').addEventListener('click', stopAuto);
+
+    // auto-start on load (optional). Comment out if you don't want auto start.
+    startAuto();
+  </script>
+
+</body>
+</html>
