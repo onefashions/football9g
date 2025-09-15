@@ -29,13 +29,12 @@
 
     /* Mobile: keep semantics but look like cards */
     @media (max-width:480px){
-      thead{display:none}
-      table,tbody,tr,td{display:block;width:100%}
-      tbody tr{display:block;margin-bottom:10px;background:rgba(255,255,255,0.02);border-radius:10px;padding:8px}
-      td{display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid rgba(255,255,255,0.04)}
-      td:last-child{border-bottom:0}
-      td::before{content:attr(data-label);font-weight:600;color:var(--muted);margin-right:8px}
-      .idx{background:linear-gradient(90deg, rgba(107,140,255,0.14), rgba(107,140,255,0.06));padding:6px 8px;border-radius:8px;font-weight:700;color:#fff}
+       .table-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;display:table;}
+    thead th{ text-align:left;padding:8px;font-weight:700;background:linear-gradient(90deg,rgba(107,140,255,0.12),rgba(107,140,255,0.04));border-radius:6px;color:#fff;font-size:13px;}
+    tbody tr{display:table-row;}
+    tbody td{padding:10px 8px;border-bottom:1px solid rgb(255, 255, 255);opacity:0;transform:translateY(8px);transition:opacity .45s ease, transform .45s ease;font-size:14px;vertical-align:middle;}
+    tbody td.show{opacity:1;transform:translateY(0);}
     }
 
     .note{font-size:12px;color:var(--muted);margin-top:8px;text-align:center}
@@ -248,5 +247,6 @@ if (WEB_APP_URL.indexOf('REPLACE_WITH_YOURS') !== -1){
 </script>
 </body>
 </html>
+
 
 
