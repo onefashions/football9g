@@ -3,178 +3,226 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Auto Reveal Table Rows (5s interval)</title>
-
-  <!-- Bootstrap 5 CDN -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
+  <title>Continuous Vertical Marquee — Fixed Heading + Column Alignment</title>
   <style>
-    /* Simple styling for the table and reveal animation */
-    body {
-      background: linear-gradient(180deg, #0f172a 0%, #0b1220 100%);
-      color: #e6eef8;
-      padding: 2rem;
+    html,body{
+      height:100%;width:100%;
+      margin:0;padding:0;
+      overflow:hidden;
+      font-family:system-ui,Segoe UI,Roboto,Arial;
+      background:#0b1220;color:#fff;
+    }
+    .wrap{height:100%;width:100%;display:flex;flex-direction:column}
+    .card{height:100%;width:100%;display:flex;flex-direction:column}
+
+    /* grid-based header */
+    .heading-bar{
+      flex:0 0 auto;
+      padding:10px 16px;
+      background:#1e293b;
+      border-bottom:2px solid #334155;
+      display:grid;
+      gap:12px;
+      font-weight:700;
+      font-size:16px;
+      color:#e2e8f0;
+      position:sticky;
+      top:0;
+      z-index:10;
     }
 
-    .card {
+    /* viewport for marquee */
+    .marquee-viewport{
+      flex:1;
+      height:100%;
+      overflow:hidden;
+      position:relative;
+      padding:10px 16px;
+      box-sizing:border-box;
+    }
+
+    .marquee-track{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      width:100%;
+      --scroll-distance: 0px;
+      animation-name: marqueeScroll;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+      animation-play-state: paused;
+    }
+    @keyframes marqueeScroll {
+      from { transform: translateY(0); }
+      to   { transform: translateY(calc(-1 * var(--scroll-distance))); }
+    }
+
+    /* each row matches grid of header */
+    .marquee-row{
+      display:grid;
+      gap:12px;
+      align-items:center;
       background: rgba(255,255,255,0.03);
-      border: 0;
-      box-shadow: 0 6px 20px rgba(2,6,23,0.6);
+      padding:10px 16px;
+      border-radius:6px;
+      font-size:15px;
+      line-height:1.3;
+      min-height:40px;
+      box-sizing:border-box;
     }
 
-    table {
-      --accent: rgba(99,102,241,0.12);
-      width: 100%;
-      border-collapse: collapse;
-      color: #e6eef8;
-    }
+    .row-image{max-width:40px;max-height:40px;border-radius:6px}
 
-    thead th {
-      background: rgba(99,102,241,0.18);
-      color: #fff;
-      font-weight: 600;
-      border-bottom: 2px solid rgba(255,255,255,0.06);
+    .controls{
+      position:fixed;
+      left:12px;
+      right:12px;
+      bottom:12px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      padding:8px;
+      background:rgba(0,0,0,0.35);
+      border-radius:8px;
+      z-index:50;
+      backdrop-filter: blur(6px);
     }
-
-    tbody tr {
-      background: rgba(255,255,255,0.02);
-      transition: transform 400ms ease, opacity 400ms ease;
-      transform-origin: left center;
-      opacity: 0;            /* initially hidden */
-      transform: translateX(-20px) scale(0.995);
+    button,select{
+      padding:6px 10px;
+      border-radius:6px;
+      border:1px solid rgba(255,255,255,0.1);
+      background:rgba(255,255,255,0.05);
+      color:#fff;
+      cursor:pointer;
     }
-
-    /* visible row state */
-    tbody tr.visible {
-      opacity: 1;
-      transform: translateX(0) scale(1);
-    }
-
-    /* subtle zebra */
-    tbody tr:nth-child(odd) { background: rgba(255,255,255,0.01); }
-    tbody tr:nth-child(even){ background: rgba(255,255,255,0.03); }
-
-    /* responsive tweaks */
-    @media (max-width: 576px) {
-      .table-responsive { font-size: 13px; }
-      thead { display: none; } /* optional: hide header on very small screens */
-      tbody td {
-        display: block;
-        width: 100%;
-        box-sizing: border-box;
-        border-bottom: 1px solid rgba(255,255,255,0.04);
-        padding: 0.6rem 0.5rem;
-      }
-      tbody tr { margin-bottom: 0.6rem; border-radius: 8px; overflow: hidden; }
-    }
+    .small{font-size:13px;color:#cbd5e1}
   </style>
 </head>
 <body>
+  <div class="wrap">
+    <div class="card">
+      <!-- Fixed heading bar -->
+      <div class="heading-bar" id="headingBar">Loading headers…</div>
 
-  <div class="container">
-    <div class="row justify-content-center mb-4">
-      <div class="col-12 col-md-10">
-        <div class="card p-3">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <h4 class="m-0">Live Reveal Table (Every 5 seconds)</h4>
-            <div>
-              <button id="startBtn" class="btn btn-sm btn-outline-light me-1">Start</button>
-              <button id="stopBtn" class="btn btn-sm btn-outline-danger">Stop</button>
-            </div>
-          </div>
-
-          <div class="table-responsive">
-            <table class="table table-borderless text-white mb-0">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Name</th>
-                  <th>Role</th>
-                  <th>Score</th>
-                </tr>
-              </thead>
-              <tbody id="autoTable">
-                <tr><td>1</td><td>Alice</td><td>Designer</td><td>92</td></tr>
-                <tr><td>2</td><td>Bob</td><td>Developer</td><td>88</td></tr>
-                <tr><td>3</td><td>Carla</td><td>PM</td><td>85</td></tr>
-                <tr><td>4</td><td>Daniel</td><td>Tester</td><td>81</td></tr>
-                <tr><td>5</td><td>Emma</td><td>DevOps</td><td>79</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <small class="text-muted mt-2 d-block">Rows will reveal one-by-one every <strong>5 seconds</strong>. Use Start/Stop to control.</small>
+      <!-- Scrolling content -->
+      <div class="marquee-viewport" id="marqueeViewport">
+        <div class="marquee-track" id="marqueeTrack">
+          <div class="marquee-row"><div>Loading…</div></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Bootstrap JS (optional, used only for utility) -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <div class="controls" style="display: none;">
+    <div class="small" id="status">Waiting…</div>
+    <button id="reloadBtn">Reload</button>
+    <button id="pauseBtn">Pause</button>
+    <label class="small">Speed:
+      <select id="speedSelect">
+        <option value="30">fast</option>
+        <option value="50" selected>normal</option>
+        <option value="80">slow</option>
+      </select>
+    </label>
+  </div>
 
-  <script>
-    /**
-     * Auto reveal table rows every 5 seconds.
-     * Default behavior: cumulative reveal (previous rows remain visible).
-     * To change interval: edit INTERVAL_MS.
-     * To make "only one row visible at a time", see comment below.
-     */
+<script>
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyvoV0DgsdXNHdsdQOSDqGLe2uER2Q59kUrHS2eI63Dh8CNCDDoVyJ1-uqtfmmXE1YV/exec";
 
-    const INTERVAL_MS = 5000; // 5 seconds
-    const tbody = document.getElementById('autoTable');
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    let currentIndex = 0;
-    let timerId = null;
+const marqueeTrack = document.getElementById('marqueeTrack');
+const headingBar = document.getElementById('headingBar');
+const statusEl = document.getElementById('status');
+const reloadBtn = document.getElementById('reloadBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const speedSelect = document.getElementById('speedSelect');
 
-    function revealNextRow() {
-      if (currentIndex >= rows.length) {
-        // If you want to stop after last row, uncomment the next line:
-        // stopAuto();
-        // Or, to loop from start again, reset index:
-        currentIndex = 0;
-        // Also hide all rows first so loop feels smooth (optional)
-        rows.forEach(r => r.classList.remove('visible'));
-      }
+let rowsData = [];
+let headers = [];
+let isPaused = false;
+let SPEED_PX_PER_SEC = Number(speedSelect.value) || 50;
 
-      // Show current row
-      const row = rows[currentIndex];
-      row.classList.add('visible');
+function loadJSONP(url){
+  return new Promise((resolve, reject) => {
+    const cbName = 'gs_cb_' + Math.random().toString(36).slice(2);
+    window[cbName] = function(data){
+      resolve(data);
+      try { delete window[cbName]; } catch(e){ window[cbName] = null; }
+      const s = document.getElementById(cbName);
+      if (s) s.remove();
+    };
+    const script = document.createElement('script');
+    script.id = cbName;
+    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
+    script.onerror = () => { reject(new Error('JSONP load failed')); if(window[cbName]) delete window[cbName]; script.remove(); };
+    document.body.appendChild(script);
+  });
+}
+function isImageUrl(url){ return !!(url && typeof url==="string" && url.toLowerCase().match(/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/)); }
 
-      // If you want "only one visible at a time":
-      // uncomment next block and comment out row.classList.add(...) above
-      /*
-      rows.forEach((r, i) => {
-        if (i === currentIndex) r.classList.add('visible');
-        else r.classList.remove('visible');
-      });
-      */
+function makeRowElement(rowObj){
+  const el = document.createElement('div');
+  el.className = 'marquee-row';
+  el.style.gridTemplateColumns = `repeat(${headers.length}, 1fr)`;
 
-      currentIndex++;
+  headers.forEach(h=>{
+    const val = rowObj[h] != null ? String(rowObj[h]) : '';
+    const cell = document.createElement('div');
+    if(isImageUrl(val)){
+      const img=document.createElement('img');
+      img.src=val; img.className='row-image'; img.alt=h;
+      img.onerror=()=>{cell.textContent=val;};
+      cell.appendChild(img);
+    } else {
+      cell.textContent=val;
     }
+    el.appendChild(cell);
+  });
+  return el;
+}
 
-    function startAuto() {
-      if (timerId) return; // already running
-      // If starting fresh and all rows hidden, reveal first immediately (optional)
-      if (currentIndex === 0 && !rows[0].classList.contains('visible')) {
-        revealNextRow();
-      }
-      timerId = setInterval(revealNextRow, INTERVAL_MS);
-    }
+function renderRows(data){
+  marqueeTrack.innerHTML='';
+  if(!data.length){ marqueeTrack.innerHTML='<div class="marquee-row">No data</div>'; return; }
+  data.forEach(r=> marqueeTrack.appendChild(makeRowElement(r)));
+}
 
-    function stopAuto() {
-      if (timerId) {
-        clearInterval(timerId);
-        timerId = null;
-      }
-    }
+function prepareSeamlessLoop(){
+  const children=[...marqueeTrack.children];
+  if(!children.length) return;
+  const originalHeight=marqueeTrack.scrollHeight;
+  children.forEach(n=> marqueeTrack.appendChild(n.cloneNode(true)));
+  marqueeTrack.style.setProperty('--scroll-distance', originalHeight+'px');
+  const duration=Math.max(70, Math.round(originalHeight/SPEED_PX_PER_SEC));
+  marqueeTrack.style.animationDuration=duration+'s';
+  marqueeTrack.style.animationPlayState=isPaused?'paused':'running';
+}
 
-    // Buttons
-    document.getElementById('startBtn').addEventListener('click', startAuto);
-    document.getElementById('stopBtn').addEventListener('click', stopAuto);
+async function loadAndStart(){
+  try{
+    statusEl.textContent='Loading…'; marqueeTrack.style.animationPlayState='paused';
+    const data=await loadJSONP(WEB_APP_URL);
+    if(!data||!data.length){ statusEl.textContent='No data'; renderRows([]); return; }
+    rowsData=data.slice();
+    headers=Object.keys(rowsData[0]);
+    // build heading
+    headingBar.innerHTML='';
+    headingBar.style.gridTemplateColumns=`repeat(${headers.length}, 1fr)`;
+    headers.forEach(h=>{
+      const span=document.createElement('div');
+      span.textContent=h;
+      headingBar.appendChild(span);
+    });
+    renderRows(rowsData);
+    setTimeout(()=>prepareSeamlessLoop(),160);
+  }catch(e){ console.error(e); statusEl.textContent='Error loading data'; }
+}
 
-    // auto-start on load (optional). Comment out if you don't want auto start.
-    startAuto();
-  </script>
+reloadBtn.onclick=()=>loadAndStart();
+pauseBtn.onclick=()=>{isPaused=!isPaused; marqueeTrack.style.animationPlayState=isPaused?'paused':'running'; pauseBtn.textContent=isPaused?'Resume':'Pause';};
+speedSelect.onchange=()=>{SPEED_PX_PER_SEC=Number(speedSelect.value)||50; if(rowsData.length){renderRows(rowsData); setTimeout(()=>prepareSeamlessLoop(),120);}};
 
+if(WEB_APP_URL.includes('REPLACE_WITH_YOURS')){ statusEl.textContent='Replace WEB_APP_URL'; }
+else{ loadAndStart(); }
+</script>
 </body>
 </html>
