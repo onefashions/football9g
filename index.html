@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Table — Rows stay • Row=5s • Column=3s (Apps Script)</title>
+  <title>Celtics Starters</title>
   <meta name="description" content="Responsive table that loads data from Google Apps Script and reveals rows/columns over time.">
   <style>
     :root{
@@ -40,7 +40,7 @@
     .note{font-size:12px;color:var(--muted);margin-top:8px;text-align:center}
     .status{font-size:13px;color:var(--muted);margin-bottom:6px}
     /* small image styling so it fits table nicely */
-    .cell-image{max-width:40px;max-height:40px;object-fit:contain;border-radius:6px;display:block}
+    .cell-image{max-width:60px;max-height:60px;object-fit:contain;border-radius:6px;display:block}
   </style>
 </head>
 <body>
@@ -54,7 +54,7 @@
         <button id="reloadBtn" class="btn">Reload</button>
         <button id="stopBtn" class="btn warn">Stop Anim</button>
       </div>
-      <H2 style="text-align: center;">Premier League (England) Updates - September 25, 2025</H2>
+      <H2 style="text-align: center;">Celtics Starters 12/10/2025</H2>
       <div class="table-w rap">
         <table aria-live="polite" role="table">
           <thead id="tableHead">
@@ -83,8 +83,8 @@
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyvoV0DgsdXNHdsdQOSDqGLe2uER2Q59kUrHS2eI63Dh8CNCDDoVyJ1-uqtfmmXE1YV/exec";
 // ============================================================================
 
-const ROW_DURATION = 4000; // 5 seconds (row spacing)
-const COL_DELAY = 300;    // 3 seconds (per column delay)
+const ROW_DURATION = 5000; // 5 seconds (row spacing)
+const COL_DELAY = 3000;    // 3 seconds (per column delay)
 
 // DOM refs
 const tableBody = document.getElementById('tableBody');
@@ -247,6 +247,7 @@ if (WEB_APP_URL.indexOf('REPLACE_WITH_YOURS') !== -1){
 </script>
 </body>
 </html>
+
 
 
 
