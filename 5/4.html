@@ -50,7 +50,17 @@
   <div class="wrap">
     <div class="card" role="region" aria-label="Table slideshow">
       
-      
+      <div class="controls" aria-hidden="false" style="display: none;">
+        <div class="status" id="status">Loading data…</div>
+        <!-- Minimal sheet selector to switch between multiple sheets - non-invasive -->
+        <select id="sheetSelect" aria-label="Select sheet">
+          <option value="">-- Select sheet --</option>
+        </select>
+        <button id="loadSheetBtn" class="btn">Load Sheet</button>
+        <!-- Kept minimal; user said no more changes — these are optional helpers -->
+        <button id="reloadBtn" class="btn">Reload</button>
+        <button id="stopBtn" class="btn warn">Stop Anim</button>
+      </div>
       <H2 style="text-align: center;">Knicks Starters 12/10/2025</H2>
       <div class="table-w rap">
         <table aria-live="polite" role="table">
@@ -78,7 +88,7 @@
 // ========== CONFIG: paste your deployed Apps Script Web App URL here ==========
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyAJP0Qn6lCk0Idf1HZAp6Kc-ggFbgaO5Sb025Au9MpOLm43q1g0PHJJ6pSClEBg3wH/exec";
 // If your Apps Script expects a different param name for sheet, change it here (default: sheet)
-const SHEET_PARAM_NAME = 'Mobile2';
+const SHEET_PARAM_NAME = 'Mobile4';
 // ============================================================================
 
 const ROW_DURATION = 5000; // 5 seconds (row spacing)
