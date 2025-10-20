@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Celtics Starters</title>
+  <meta name="description" content="Responsive table that loads data from Google Apps Script and reveals rows/columns over time.">
+  <style>
+    :root{
+      
+      --bg:#051027; --card:#051027;
+      --muted:#9fb0d6; --accent:#6b8cff; --text:#ffffff;
+    }
+    html,body{margin:0;background:linear-gradient(180deg,var(--bg),#051027);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;}
+    .wrap{max-width:100%;margin:0 auto;}
+    .card{background:var(--card);border-radius:12px;padding:12px;}
+    h3{margin:0 0 8px 0;font-size:16px}
+    .controls{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+    .btn{background:transparent;color:var(--text);border:1px solid rgba(255,255,255,0.06);padding:6px 8px;border-radius:8px;font-size:13px;cursor:pointer}
+    .btn.warn{border-color:rgba(255,80,80,0.18);color:#ffd6d6}
+
+    /* Table base (desktop) */
+    .table-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;display:table;}
+    thead th{ text-align:left;padding:8px;font-weight:700;background:linear-gradient(90deg,rgba(107,140,255,0.12),rgba(107,140,255,0.04));border-radius:6px;color:#fff;font-size:13px;}
+    tbody tr{display:table-row;}
+    tbody td{padding:5px 3px;border-bottom:2px solid rgb(255, 255, 255);opacity:0;transform:translateY(8px);transition:opacity .45s ease, transform .45s ease;font-size:14px;vertical-align:middle;}
+    tbody td.show{opacity:1;transform:translateY(0);}
+
+    /* Mobile: keep semantics but look like cards */
+    @media (max-width:480px){
+       .table-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;display:table;}
+    thead th{ text-align:left;padding:8px;font-weight:700;background:linear-gradient(90deg,rgba(107,140,255,0.12),rgba(107,140,255,0.04));border-radius:6px;color:#fff;font-size:13px;}
+    tbody tr{display:table-row;}
+    tbody td{padding:5px 3px;border-bottom:2px solid rgb(255, 255, 255);opacity:0;transform:translateY(8px);transition:opacity .45s ease, transform .45s ease;font-size:14px;vertical-align:middle;}
+    tbody td.show{opacity:1;transform:translateY(0);}    
+    }
+
+    .note{font-size:12px;color:var(--muted);margin-top:8px;text-align:center}
+    .status{font-size:13px;color:var(--muted);margin-bottom:6px}
+    /* small image styling so it fits table nicely */
+    .cell-image{max-width:60px;max-height:60px;object-fit:contain;border-radius:6px;display:block}
+
+    /* small sheet selector styling (minimal, non-invasive) */
+    #sheetSelect{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text);padding:6px 8px;border-radius:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" role="region" aria-label="Table slideshow">
+      
+      <div class="controls" aria-hidden="false">
+        <div class="status" id="status">Loading data…</div>
+        <!-- Minimal sheet selector to switch between multiple sheets - non-invasive -->
+        <select id="sheetSelect" aria-label="Select sheet">
+          <option value="">-- Select sheet --</option>
+        </select>
+        <button id="loadSheetBtn" class="btn">Load Sheet</button>
+        <!-- Kept minimal; user said no more changes — these are optional helpers -->
+        <button id="reloadBtn" class="btn">Reload</button>
+        <button id="stopBtn" class="btn warn">Stop Anim</button>
+      </div>
+      <H2 style="text-align: center;">Knicks Starters 12/10/2025</H2>
+      <div class="table-w rap">
+        <table aria-live="polite" role="table">
+          <thead id="tableHead">
+            <tr><th style="width:48px">#</th><th>Name</th><th>Role</th><th style="width:72px">Score</th></tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+/*
+  MULTI-SHEET SUPPORT (minimal changes):
+  - The page now tries to load a list of sheets from your Apps Script by calling the same WEB_APP_URL with the param `listSheets=true`.
+  - If your Apps Script supports returning sheet names (as a JSON array), the selector will populate automatically.
+  - If not, you can still type a sheet name manually into the selector (choose the blank option and click "Load Sheet" — you'll be prompted).
+  - When loading data, the page appends `sheet=<sheetName>` to the Apps Script URL. Many Apps Script endpoints accept this pattern; if yours uses a different param name, update the code's `SHEET_PARAM_NAME` below.
+*/
+
+// ========== CONFIG: paste your deployed Apps Script Web App URL here ==========
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyAJP0Qn6lCk0Idf1HZAp6Kc-ggFbgaO5Sb025Au9MpOLm43q1g0PHJJ6pSClEBg3wH/exec";
+// If your Apps Script expects a different param name for sheet, change it here (default: sheet)
+const SHEET_PARAM_NAME = 'Mobile2';
+// ============================================================================
+
+const ROW_DURATION = 5000; // 5 seconds (row spacing)
+const COL_DELAY = 300;    // 3 seconds (per column delay)
+
+// DOM refs
+const tableBody = document.getElementById('tableBody');
+const tableHead = document.getElementById('tableHead');
+const statusEl = document.getElementById('status');
+const reloadBtn = document.getElementById('reloadBtn');
+const stopBtn = document.getElementById('stopBtn');
+const sheetSelect = document.getElementById('sheetSelect');
+const loadSheetBtn = document.getElementById('loadSheetBtn');
+
+let scheduledTimers = []; // to clear if reload/stop
+let activeSheet = '';
+
+function clearScheduled(){
+  scheduledTimers.forEach(t => clearTimeout(t));
+  scheduledTimers = [];
+}
+
+// Simple JSONP loader using injected script tag
+function loadJSONP(url){
+  return new Promise((resolve, reject) => {
+    const cbName = 'gs_cb_' + Math.random().toString(36).slice(2);
+    window[cbName] = function(data){
+      resolve(data);
+      // cleanup
+      try { delete window[cbName]; } catch(e){ window[cbName] = null; }
+      const s = document.getElementById(cbName);
+      if (s) s.parentNode.removeChild(s);
+    };
+    const script = document.createElement('script');
+    script.id = cbName;
+    script.src = url + (url.indexOf('?') === -1 ? '?' : '&') + 'callback=' + cbName;
+    script.onerror = function(e){
+      reject(new Error('JSONP load failed'));
+      try { delete window[cbName]; } catch(e){}
+      const s = document.getElementById(cbName);
+      if (s) s.parentNode.removeChild(s);
+    };
+    document.body.appendChild(script);
+  });
+}
+
+// Build table from array of objects
+function buildTable(data){
+  tableBody.innerHTML = '';
+  // Build header if keys available
+  if (!data || !data.length){
+    tableBody.innerHTML = '<tr><td colspan="4">No data</td></tr>';
+    return;
+  }
+
+  const headers = Object.keys(data[0]);
+
+  // build thead dynamically to match sheet headers (keeps semantics)
+  const thHtml = headers.map((h,i)=>{
+    if (i === 0) return '<th style="width:48px">'+escapeHtml(h)+'</th>';
+    if (i === headers.length-1) return '<th style="width:72px">'+escapeHtml(h)+'</th>';
+    return '<th>'+escapeHtml(h)+'</th>';
+  }).join('');
+  tableHead.innerHTML = '<tr>' + thHtml + '</tr>';
+
+  // Helper: detect image-like URL (basic check)
+  function isImageUrl(url){
+    if (!url || typeof url !== 'string') return false;
+    const trimmed = url.trim().toLowerCase();
+    return trimmed.match(/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/);
+  }
+
+  // build tbody rows
+  data.forEach((rowObj, rIndex) => {
+    const tr = document.createElement('tr');
+    headers.forEach(h => {
+      const td = document.createElement('td');
+      td.setAttribute('data-label', h);
+      const raw = rowObj[h] != null ? String(rowObj[h]) : '';
+
+      if (isImageUrl(raw)) {
+        const img = document.createElement('img');
+        img.src = raw;
+        img.alt = h;
+        img.className = 'cell-image';
+        img.style.display = 'inline-block';
+        img.onerror = function(){ 
+          td.textContent = raw;
+        };
+        td.appendChild(img);
+      } else {
+        td.textContent = raw;
+      }
+
+      tr.appendChild(td);
+    });
+    tableBody.appendChild(tr);
+  });
+}
+
+// schedule animations according to requested timings
+function scheduleAnimations(){
+  clearScheduled();
+  const rows = Array.from(tableBody.querySelectorAll('tr'));
+  rows.forEach((row, rowIndex) => {
+    const cells = Array.from(row.querySelectorAll('td'));
+    const rowStart = rowIndex * ROW_DURATION;
+    cells.forEach((cell, colIndex) => {
+      const showTime = rowStart + colIndex * COL_DELAY;
+      const t = setTimeout(() => {
+        cell.classList.add('show');
+      }, showTime);
+      scheduledTimers.push(t);
+    });
+  });
+}
+
+// utility escape
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; }); }
+
+// helper to build URL with optional sheet param
+function buildUrlWithSheet(sheet){
+  if (!sheet) return WEB_APP_URL;
+  const sep = WEB_APP_URL.indexOf('?') === -1 ? '?' : '&';
+  return WEB_APP_URL + sep + encodeURIComponent(SHEET_PARAM_NAME) + '=' + encodeURIComponent(sheet);
+}
+
+// main loader
+async function loadAndRun(sheetName){
+  try {
+    statusEl.textContent = 'Loading data…';
+    clearScheduled();
+    tableBody.innerHTML = '';
+    const url = buildUrlWithSheet(sheetName || activeSheet);
+    const data = await loadJSONP(url);
+    if (!data || (Array.isArray(data) && data.length === 0)){
+      statusEl.textContent = 'No data';
+      tableBody.innerHTML = '<tr><td colspan="4">No data</td></tr>';
+      return;
+    }
+    buildTable(data);
+    statusEl.textContent = 'Animating…';
+    scheduleAnimations();
+  } catch (err){
+    console.error(err);
+    statusEl.textContent = 'Load error';
+    tableBody.innerHTML = '<tr><td colspan="4">Error loading data. Check Apps Script URL and deploy settings.</td></tr>';
+  }
+}
+
+// try to load sheet list (Apps Script should return JSON array of sheet names if supported)
+async function tryLoadSheetList(){
+  try{
+    const sep = WEB_APP_URL.indexOf('?') === -1 ? '?' : '&';
+    const listUrl = WEB_APP_URL + sep + 'listSheets=true';
+    const sheets = await loadJSONP(listUrl);
+    if (Array.isArray(sheets) && sheets.length){
+      // populate selector
+      sheets.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = s;
+        sheetSelect.appendChild(opt);
+      });
+      // keep the empty option on top
+    }
+  }catch(e){
+    // ignore — many Apps Script endpoints won't support listing; user can still load by manual entry
+    console.warn('Sheet list not available from Apps Script');
+  }
+}
+
+// controls
+reloadBtn.addEventListener('click', () => {
+  clearScheduled();
+  loadAndRun();
+});
+stopBtn.addEventListener('click', () => {
+  clearScheduled();
+  statusEl.textContent = 'Animation stopped';
+});
+
+loadSheetBtn.addEventListener('click', async () => {
+  const val = sheetSelect.value;
+  if (!val){
+    // ask user to type sheet name (minimal intrusion)
+    const promptName = window.prompt('Enter sheet name exactly as in Google Sheets:');
+    if (promptName) {
+      activeSheet = promptName.trim();
+      // add to selector for convenience
+      const opt = document.createElement('option'); opt.value = activeSheet; opt.textContent = activeSheet; sheetSelect.appendChild(opt); sheetSelect.value = activeSheet;
+      await loadAndRun(activeSheet);
+    }
+  } else {
+    activeSheet = val;
+    await loadAndRun(activeSheet);
+  }
+});
+
+// start automatically: populate sheet list (if available) then load default
+if (WEB_APP_URL.indexOf('REPLACE_WITH_YOURS') !== -1){
+  statusEl.textContent = 'Replace WEB_APP_URL in the HTML with your Apps Script URL and reload.';
+  tableBody.innerHTML = '<tr><td colspan="4">Replace WEB_APP_URL placeholder with your deployed Apps Script Web App URL.</td></tr>';
+} else {
+  tryLoadSheetList();
+  loadAndRun();
+}
+</script>
+</body>
+</html>
