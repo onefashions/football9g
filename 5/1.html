@@ -79,24 +79,16 @@
   </div>
 
 <script>
-/*
-  MULTI-SHEET SUPPORT (minimal changes):
-  - The page now tries to load a list of sheets from your Apps Script by calling the same WEB_APP_URL with the param `listSheets=true`.
-  - If your Apps Script supports returning sheet names (as a JSON array), the selector will populate automatically.
-  - If not, you can still type a sheet name manually into the selector (choose the blank option and click "Load Sheet" — you'll be prompted).
-  - When loading data, the page appends `sheet=<sheetName>` to the Apps Script URL. Many Apps Script endpoints accept this pattern; if yours uses a different param name, update the code's `SHEET_PARAM_NAME` below.
-*/
-
 // ========== CONFIG: paste your deployed Apps Script Web App URL here ==========
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyAJP0Qn6lCk0Idf1HZAp6Kc-ggFbgaO5Sb025Au9MpOLm43q1g0PHJJ6pSClEBg3wH/exec";
-// If your Apps Script expects a different param name for sheet, change it here (default: sheet)
-const SHEET_PARAM_NAME = 'Mobile1';
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwl0PEh02Ih_S7jcrRUgbAgbqyBptp_ruJSDTzaVSjUQVM6CvRxdFw0nMgrFxk52-eQ/exec";
+// IMPORTANT: this is the PARAM NAME your Apps Script expects, NOT the sheet value.
+// If your Apps Script uses ?sheet=Mobile1 then set this to 'sheet'
+const SHEET_PARAM_NAME = 'Mobile2';
 // ============================================================================
 
-const ROW_DURATION = 5000; // 5 seconds (row spacing)
-const COL_DELAY = 300;    // 3 seconds (per column delay)
+const ROW_DURATION = 5000;
+const COL_DELAY = 300;
 
-// DOM refs
 const tableBody = document.getElementById('tableBody');
 const tableHead = document.getElementById('tableHead');
 const statusEl = document.getElementById('status');
@@ -105,50 +97,36 @@ const stopBtn = document.getElementById('stopBtn');
 const sheetSelect = document.getElementById('sheetSelect');
 const loadSheetBtn = document.getElementById('loadSheetBtn');
 
-let scheduledTimers = []; // to clear if reload/stop
+let scheduledTimers = [];
 let activeSheet = '';
 
-function clearScheduled(){
-  scheduledTimers.forEach(t => clearTimeout(t));
-  scheduledTimers = [];
-}
+function clearScheduled(){ scheduledTimers.forEach(t => clearTimeout(t)); scheduledTimers = []; }
 
-// Simple JSONP loader using injected script tag
+// JSONP loader
 function loadJSONP(url){
   return new Promise((resolve, reject) => {
     const cbName = 'gs_cb_' + Math.random().toString(36).slice(2);
     window[cbName] = function(data){
       resolve(data);
-      // cleanup
       try { delete window[cbName]; } catch(e){ window[cbName] = null; }
-      const s = document.getElementById(cbName);
-      if (s) s.parentNode.removeChild(s);
+      const s = document.getElementById(cbName); if (s) s.parentNode.removeChild(s);
     };
     const script = document.createElement('script');
     script.id = cbName;
     script.src = url + (url.indexOf('?') === -1 ? '?' : '&') + 'callback=' + cbName;
-    script.onerror = function(e){
-      reject(new Error('JSONP load failed'));
-      try { delete window[cbName]; } catch(e){}
-      const s = document.getElementById(cbName);
-      if (s) s.parentNode.removeChild(s);
-    };
+    script.onerror = function(){ reject(new Error('JSONP load failed')); try { delete window[cbName]; } catch(e){} if (script.parentNode) script.parentNode.removeChild(script); };
     document.body.appendChild(script);
   });
 }
 
-// Build table from array of objects
 function buildTable(data){
   tableBody.innerHTML = '';
-  // Build header if keys available
   if (!data || !data.length){
     tableBody.innerHTML = '<tr><td colspan="4">No data</td></tr>';
     return;
   }
 
-  const headers = Object.keys(data[0]);
-
-  // build thead dynamically to match sheet headers (keeps semantics)
+  const headers = Object.keys(data[0] || {});
   const thHtml = headers.map((h,i)=>{
     if (i === 0) return '<th style="width:48px">'+escapeHtml(h)+'</th>';
     if (i === headers.length-1) return '<th style="width:72px">'+escapeHtml(h)+'</th>';
@@ -156,42 +134,31 @@ function buildTable(data){
   }).join('');
   tableHead.innerHTML = '<tr>' + thHtml + '</tr>';
 
-  // Helper: detect image-like URL (basic check)
   function isImageUrl(url){
     if (!url || typeof url !== 'string') return false;
-    const trimmed = url.trim().toLowerCase();
-    return trimmed.match(/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/);
+    return !!url.trim().toLowerCase().match(/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/);
   }
 
-  // build tbody rows
-  data.forEach((rowObj, rIndex) => {
+  data.forEach((rowObj) => {
     const tr = document.createElement('tr');
     headers.forEach(h => {
       const td = document.createElement('td');
       td.setAttribute('data-label', h);
       const raw = rowObj[h] != null ? String(rowObj[h]) : '';
-
       if (isImageUrl(raw)) {
         const img = document.createElement('img');
-        img.src = raw;
-        img.alt = h;
-        img.className = 'cell-image';
-        img.style.display = 'inline-block';
-        img.onerror = function(){ 
-          td.textContent = raw;
-        };
+        img.src = raw; img.alt = h; img.className = 'cell-image';
+        img.onerror = function(){ td.textContent = raw; };
         td.appendChild(img);
       } else {
         td.textContent = raw;
       }
-
       tr.appendChild(td);
     });
     tableBody.appendChild(tr);
   });
 }
 
-// schedule animations according to requested timings
 function scheduleAnimations(){
   clearScheduled();
   const rows = Array.from(tableBody.querySelectorAll('tr'));
@@ -200,87 +167,99 @@ function scheduleAnimations(){
     const rowStart = rowIndex * ROW_DURATION;
     cells.forEach((cell, colIndex) => {
       const showTime = rowStart + colIndex * COL_DELAY;
-      const t = setTimeout(() => {
-        cell.classList.add('show');
-      }, showTime);
+      const t = setTimeout(() => { cell.classList.add('show'); }, showTime);
       scheduledTimers.push(t);
     });
   });
 }
 
-// utility escape
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; }); }
 
-// helper to build URL with optional sheet param
+// Build URL with sheet param name/value
 function buildUrlWithSheet(sheet){
+  // if no sheet specified, just return base URL
   if (!sheet) return WEB_APP_URL;
   const sep = WEB_APP_URL.indexOf('?') === -1 ? '?' : '&';
   return WEB_APP_URL + sep + encodeURIComponent(SHEET_PARAM_NAME) + '=' + encodeURIComponent(sheet);
 }
 
-// main loader
+// --- MAIN loader with robust response handling ---
 async function loadAndRun(sheetName){
   try {
     statusEl.textContent = 'Loading data…';
     clearScheduled();
     tableBody.innerHTML = '';
+
     const url = buildUrlWithSheet(sheetName || activeSheet);
-    const data = await loadJSONP(url);
-    if (!data || (Array.isArray(data) && data.length === 0)){
+    const raw = await loadJSONP(url);
+
+    // raw can be:
+    // 1) an array -> good
+    // 2) an object like { "Mobile1": [ ... ] } -> extract the array
+    // 3) an object mapping multiple sheets -> if user requested a specific sheet, try to use that key
+    let data = null;
+    if (Array.isArray(raw)) {
+      data = raw;
+    } else if (raw && typeof raw === 'object') {
+      // if user requested a specific sheetName, try that key first
+      if (sheetName && raw[sheetName] && Array.isArray(raw[sheetName])) {
+        data = raw[sheetName];
+      } else {
+        // try to find the first array-valued property
+        const keys = Object.keys(raw);
+        for (let k of keys){
+          if (Array.isArray(raw[k])) { data = raw[k]; break; }
+        }
+        // if object contains nested single-key like { "Mobile1": {...} } and that inner is object with "error" etc, try more
+        if (!data && keys.length === 1 && Array.isArray(raw[keys[0]])) {
+          data = raw[keys[0]];
+        }
+      }
+    }
+
+    if (!data || !data.length){
       statusEl.textContent = 'No data';
-      tableBody.innerHTML = '<tr><td colspan="4">No data</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="4">No data (server returned empty or unexpected format).</td></tr>';
+      console.warn('Raw server response:', raw);
       return;
     }
+
     buildTable(data);
     statusEl.textContent = 'Animating…';
     scheduleAnimations();
+
   } catch (err){
     console.error(err);
     statusEl.textContent = 'Load error';
-    tableBody.innerHTML = '<tr><td colspan="4">Error loading data. Check Apps Script URL and deploy settings.</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="4">Error loading data. Check Apps Script URL, sheet name, and deploy settings.</td></tr>';
   }
 }
 
-// try to load sheet list (Apps Script should return JSON array of sheet names if supported)
+// try to load sheet list (if server supports listSheets=true)
 async function tryLoadSheetList(){
   try{
     const sep = WEB_APP_URL.indexOf('?') === -1 ? '?' : '&';
     const listUrl = WEB_APP_URL + sep + 'listSheets=true';
     const sheets = await loadJSONP(listUrl);
     if (Array.isArray(sheets) && sheets.length){
-      // populate selector
       sheets.forEach(s => {
         const opt = document.createElement('option');
-        opt.value = s;
-        opt.textContent = s;
-        sheetSelect.appendChild(opt);
+        opt.value = s; opt.textContent = s; sheetSelect.appendChild(opt);
       });
-      // keep the empty option on top
     }
-  }catch(e){
-    // ignore — many Apps Script endpoints won't support listing; user can still load by manual entry
-    console.warn('Sheet list not available from Apps Script');
-  }
+  }catch(e){ console.warn('Sheet list not available from Apps Script'); }
 }
 
 // controls
-reloadBtn.addEventListener('click', () => {
-  clearScheduled();
-  loadAndRun();
-});
-stopBtn.addEventListener('click', () => {
-  clearScheduled();
-  statusEl.textContent = 'Animation stopped';
-});
+reloadBtn.addEventListener('click', () => { clearScheduled(); loadAndRun(); });
+stopBtn.addEventListener('click', () => { clearScheduled(); statusEl.textContent = 'Animation stopped'; });
 
 loadSheetBtn.addEventListener('click', async () => {
   const val = sheetSelect.value;
   if (!val){
-    // ask user to type sheet name (minimal intrusion)
     const promptName = window.prompt('Enter sheet name exactly as in Google Sheets:');
     if (promptName) {
       activeSheet = promptName.trim();
-      // add to selector for convenience
       const opt = document.createElement('option'); opt.value = activeSheet; opt.textContent = activeSheet; sheetSelect.appendChild(opt); sheetSelect.value = activeSheet;
       await loadAndRun(activeSheet);
     }
@@ -290,7 +269,7 @@ loadSheetBtn.addEventListener('click', async () => {
   }
 });
 
-// start automatically: populate sheet list (if available) then load default
+// init
 if (WEB_APP_URL.indexOf('REPLACE_WITH_YOURS') !== -1){
   statusEl.textContent = 'Replace WEB_APP_URL in the HTML with your Apps Script URL and reload.';
   tableBody.innerHTML = '<tr><td colspan="4">Replace WEB_APP_URL placeholder with your deployed Apps Script Web App URL.</td></tr>';
@@ -299,5 +278,6 @@ if (WEB_APP_URL.indexOf('REPLACE_WITH_YOURS') !== -1){
   loadAndRun();
 }
 </script>
+
 </body>
 </html>
