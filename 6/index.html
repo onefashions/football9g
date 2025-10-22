@@ -1,0 +1,130 @@
+<!doctype html>
+<html ⚡ lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>NBA Daily — Video Web Story</title>
+  <link rel="canonical" href="self.html">
+  <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
+  
+  <script async src="https://cdn.ampproject.org/v0.js"></script>
+  <script async custom-element="amp-story" src="https://cdn.ampproject.org/v0/amp-story-1.0.js"></script>
+  <script async custom-element="amp-video" src="https://cdn.ampproject.org/v0/amp-video-0.1.js"></script>
+
+  <style amp-custom>
+    :root{
+      --accent:#ff4500;
+      --muted:#ffffffcc;
+      font-family: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    amp-story { background: black; color: white; }
+    .logo { width:56px; height:56px; border-radius:12px; object-fit:cover; }
+    .top-badge{ position:absolute; top:18px; right:18px; background:rgba(0,0,0,0.4); padding:6px 10px; border-radius:20px; font-size:14px; }
+    .bottom-cta{ position:absolute; bottom:20px; left:20px; right:20px; display:flex; justify-content:space-between; align-items:center; }
+    .small-muted{ font-size:13px; color:var(--muted); }
+    amp-video, amp-img { object-fit:cover; width:100%; height:100%; }
+  </style>
+</head>
+<body>
+
+  <amp-story standalone
+             title="NBA Daily Video Story"
+             publisher="NBA Daily"
+             publisher-logo-src="https://upload.wikimedia.org/wikipedia/commons/0/03/NBA_logo.svg"
+             poster-portrait-src="https://upload.wikimedia.org/wikipedia/commons/0/03/NBA_logo.svg">
+
+    <!-- PAGE 1 -->
+    <amp-story-page id="cover">
+      <amp-story-grid-layer template="fill">
+        <amp-video
+          autoplay
+          loop
+          muted
+          playsinline
+          width="720"
+          height="1280"
+          layout="responsive"
+          poster="https://cdn.pixabay.com/photo/2017/02/20/18/03/basketball-2081080_1280.jpg">
+          <source src="/video1.mp4" type="video/mp4">
+          <div fallback>Video not supported</div>
+        </amp-video>
+      </amp-story-grid-layer>
+
+      <amp-story-grid-layer template="vertical" style="padding:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <img class="logo" src="https://upload.wikimedia.org/wikipedia/commons/0/03/NBA_logo.svg" alt="logo">
+          <div class="small-muted">NBA Daily</div>
+        </div>
+        <div style="flex:1;display:flex;align-items:flex-end;padding-bottom:60px;">
+          <div>
+            <h1 style="font-size:48px;margin:0;">NBA Daily</h1>
+            <p style="font-size:20px;margin:6px 0 0;">Top highlights — updated daily</p>
+          </div>
+        </div>
+      </amp-story-grid-layer>
+    </amp-story-page>
+
+    <!-- PAGE 2 -->
+    <amp-story-page id="highlight">
+      <amp-story-grid-layer template="fill">
+        <amp-video
+          autoplay
+          loop
+          muted
+          playsinline
+          width="720"
+          height="1280"
+          layout="responsive"
+          poster="https://cdn.pixabay.com/photo/2017/02/20/18/03/basketball-2081080_1280.jpg">
+          <source src="/video2.mp4" type="video/mp4">
+          <div fallback>Video not supported</div>
+        </amp-video>
+      </amp-story-grid-layer>
+
+      <amp-story-grid-layer template="vertical" style="padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <img class="logo" src="https://upload.wikimedia.org/wikipedia/commons/0/03/NBA_logo.svg" alt="logo">
+          <div class="top-badge">Today’s Game</div>
+        </div>
+        <div style="flex:1;display:flex;align-items:flex-end;">
+          <div style="background:rgba(0,0,0,0.4);padding:16px;border-radius:12px;">
+            <h2 style="margin:0;font-size:32px;">Celtics vs Knicks</h2>
+            <p class="small-muted">Final: 112 - 109</p>
+          </div>
+        </div>
+        <div class="bottom-cta">
+          <div class="small-muted">Swipe →</div>
+          <div class="small-muted">#NBAHighlights</div>
+        </div>
+      </amp-story-grid-layer>
+    </amp-story-page>
+
+    <!-- PAGE 3 -->
+    <amp-story-page id="player">
+      <amp-story-grid-layer template="fill">
+        <amp-video
+          autoplay
+          loop
+          muted
+          playsinline
+          width="720"
+          height="1280"
+          layout="responsive"
+          poster="https://cdn.pixabay.com/photo/2016/11/21/12/57/athlete-1840437_1280.jpg">
+          <source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4" type="video/mp4">
+          <div fallback>Video not supported</div>
+        </amp-video>
+      </amp-story-grid-layer>
+
+      <amp-story-grid-layer template="vertical" style="padding:20px;">
+        <div style="flex:1;display:flex;align-items:flex-end;">
+          <div style="background:linear-gradient(180deg,transparent,rgba(0,0,0,0.7));padding:20px;border-radius:16px;">
+            <h2 style="margin:0;font-size:36px;">Jayson Tatum</h2>
+            <p class="small-muted">PTS: 34 | REB: 8 | AST: 5</p>
+          </div>
+        </div>
+      </amp-story-grid-layer>
+    </amp-story-page>
+
+  </amp-story>
+</body>
+</html>
