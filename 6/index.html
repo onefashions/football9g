@@ -1,130 +1,124 @@
 <!doctype html>
-<html ⚡ lang="en">
+<html lang="hi">
 <head>
-  <meta charset="utf-8">
-  <title>NBA Daily — Video Web Story</title>
-  <link rel="canonical" href="self.html">
-  <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
-  
-  <script async src="https://cdn.ampproject.org/v0.js"></script>
-  <script async custom-element="amp-story" src="https://cdn.ampproject.org/v0/amp-story-1.0.js"></script>
-  <script async custom-element="amp-video" src="https://cdn.ampproject.org/v0/amp-video-0.1.js"></script>
-
-  <style amp-custom>
-    :root{
-      --accent:#ff4500;
-      --muted:#ffffffcc;
-      font-family: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    }
-    amp-story { background: black; color: white; }
-    .logo { width:56px; height:56px; border-radius:12px; object-fit:cover; }
-    .top-badge{ position:absolute; top:18px; right:18px; background:rgba(0,0,0,0.4); padding:6px 10px; border-radius:20px; font-size:14px; }
-    .bottom-cta{ position:absolute; bottom:20px; left:20px; right:20px; display:flex; justify-content:space-between; align-items:center; }
-    .small-muted{ font-size:13px; color:var(--muted); }
-    amp-video, amp-img { object-fit:cover; width:100%; height:100%; }
+  <meta charset="utf-8" />
+  <title>NBA Video Story — Local & Remote</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{ --bg:#000; --muted:#ddd; --accent:#ff4500; font-family: system-ui, Roboto, Arial; }
+    body{ margin:0; background:var(--bg); color:#fff; display:flex; flex-direction:column; min-height:100vh; }
+    .story{ width:100%; max-width:420px; margin:0 auto; background:#000; position:relative; height:80vh; border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.6); }
+    video{ width:100%; height:100%; object-fit:cover; background:#000; display:block; }
+    .overlay{ position:absolute; inset:12px; display:flex; flex-direction:column; justify-content:space-between; pointer-events:none; }
+    .topbar{ display:flex; justify-content:space-between; align-items:center; pointer-events:auto; }
+    .logo{ width:48px; height:48px; border-radius:8px; object-fit:contain; background:#fff1; }
+    .controls{ padding:12px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+    .btn{ background:var(--accent); color:#fff; padding:8px 10px; border-radius:8px; border:none; font-weight:700; cursor:pointer; }
+    .small{ color:var(--muted); font-size:13px; }
+    .file-input{ display:inline-block; padding:6px 10px; border-radius:8px; background:#111; color:#fff; cursor:pointer; }
+    .footer-note{ text-align:center; color:var(--muted); padding:10px 12px; font-size:13px; }
+    @media(min-width:700px){ .story{ height:78vh; } }
   </style>
 </head>
 <body>
 
-  <amp-story standalone
-             title="NBA Daily Video Story"
-             publisher="NBA Daily"
-             publisher-logo-src="https://upload.wikimedia.org/wikipedia/commons/0/03/NBA_logo.svg"
-             poster-portrait-src="https://upload.wikimedia.org/wikipedia/commons/0/03/NBA_logo.svg">
 
-    <!-- PAGE 1 -->
-    <amp-story-page id="cover">
-      <amp-story-grid-layer template="fill">
-        <amp-video
-          autoplay
-          loop
-          muted
-          playsinline
-          width="720"
-          height="1280"
-          layout="responsive"
-          poster="https://cdn.pixabay.com/photo/2017/02/20/18/03/basketball-2081080_1280.jpg">
-          <source src="https://github.com/onefashions/football9g/blob/main/6/video1.mp4" type="video/mp4">
-          <div fallback>Video not supported</div>
-        </amp-video>
-      </amp-story-grid-layer>
 
-      <amp-story-grid-layer template="vertical" style="padding:24px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <img class="logo" src="https://upload.wikimedia.org/wikipedia/commons/0/03/NBA_logo.svg" alt="logo">
-          <div class="small-muted">NBA Daily</div>
-        </div>
-        <div style="flex:1;display:flex;align-items:flex-end;padding-bottom:60px;">
-          <div>
-            <h1 style="font-size:48px;margin:0;">NBA Daily</h1>
-            <p style="font-size:20px;margin:6px 0 0;">Top highlights — updated daily</p>
-          </div>
-        </div>
-      </amp-story-grid-layer>
-    </amp-story-page>
+  <div class="story" id="story">
+    <video id="player" playsinline muted autoplay loop controls></video>
 
-    <!-- PAGE 2 -->
-    <amp-story-page id="highlight">
-      <amp-story-grid-layer template="fill">
-        <amp-video
-          autoplay
-          loop
-          muted
-          playsinline
-          width="720"
-          height="1280"
-          layout="responsive"
-          poster="https://cdn.pixabay.com/photo/2017/02/20/18/03/basketball-2081080_1280.jpg">
-          <source src="https://github.com/onefashions/football9g/blob/main/6/video2.mp4" type="video/mp4">
-          <div fallback>Video not supported</div>
-        </amp-video>
-      </amp-story-grid-layer>
+    <div class="overlay">
+      <div class="topbar">
+        <img class="logo" src="https://upload.wikimedia.org/wikipedia/commons/0/03/NBA_logo.svg" alt="logo">
+        <div class="small" id="nowInfo" style="display: none;">Loading...</div>
+      </div>
 
-      <amp-story-grid-layer template="vertical" style="padding:20px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <img class="logo" src="https://upload.wikimedia.org/wikipedia/commons/0/03/NBA_logo.svg" alt="logo">
-          <div class="top-badge">Today’s Game</div>
-        </div>
-        <div style="flex:1;display:flex;align-items:flex-end;">
-          <div style="background:rgba(0,0,0,0.4);padding:16px;border-radius:12px;">
-            <h2 style="margin:0;font-size:32px;">Celtics vs Knicks</h2>
-            <p class="small-muted">Final: 112 - 109</p>
-          </div>
-        </div>
-        <div class="bottom-cta">
-          <div class="small-muted">Swipe →</div>
-          <div class="small-muted">#NBAHighlights</div>
-        </div>
-      </amp-story-grid-layer>
-    </amp-story-page>
+      <div style="display:flex; justify-content:center; gap:10px; pointer-events:auto;">
+        <!-- controls moved outside for accessibility -->
+      </div>
+    </div>
+  </div>
 
-    <!-- PAGE 3 -->
-    <amp-story-page id="player">
-      <amp-story-grid-layer template="fill">
-        <amp-video
-          autoplay
-          loop
-          muted
-          playsinline
-          width="720"
-          height="1280"
-          layout="responsive"
-          poster="https://cdn.pixabay.com/photo/2016/11/21/12/57/athlete-1840437_1280.jpg">
-          <source src="https://github.com/onefashions/football9g/blob/main/6/video1.mp4" type="video/mp4">
-          <div fallback>Video not supported</div>
-        </amp-video>
-      </amp-story-grid-layer>
+  <div class="controls" >
+    <button class="btn" data-src="video1.mp4"></button>
+    <button class="btn" data-src="video2.mp4"></button>
+    <button class="btn" data-src="video3.mp4"></button>
 
-      <amp-story-grid-layer template="vertical" style="padding:20px;">
-        <div style="flex:1;display:flex;align-items:flex-end;">
-          <div style="background:linear-gradient(180deg,transparent,rgba(0,0,0,0.7));padding:20px;border-radius:16px;">
-            <h2 style="margin:0;font-size:36px;">Jayson Tatum</h2>
-            <p class="small-muted">PTS: 34 | REB: 8 | AST: 5</p>
-          </div>
-        </div>
-      </amp-story-grid-layer>
-    </amp-story-page>
+    <!-- Local file chooser -->
+   
 
-  </amp-story>
+  </div>
+
+
+<script>
+  const player = document.getElementById('player');
+  const nowInfo = document.getElementById('nowInfo');
+  const buttons = document.querySelectorAll('.controls .btn[data-src], .controls .btn[data-src]');
+  const fileInput = document.getElementById('fileInput');
+  const resetBtn = document.getElementById('resetBtn');
+
+  // default source
+  let defaultSrc = 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
+  let currentObjectUrl = null;
+
+  function setSource(src, label) {
+    // revoke previous object URL (if local)
+    if (currentObjectUrl) {
+      URL.revokeObjectURL(currentObjectUrl);
+      currentObjectUrl = null;
+    }
+    player.pause();
+    player.src = src;
+    player.load();
+    player.muted = true; // for autoplay on mobile browsers
+    player.play().catch(e => {
+      // some browsers block autoplay until user interacts
+      console.warn('Autoplay blocked:', e);
+    });
+    nowInfo.textContent = label || src.split('/').pop();
+  }
+
+  // initialize default
+  setSource(defaultSrc, 'Demo 1');
+
+  // remote buttons
+  document.querySelectorAll('.controls .btn[data-src]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const src = btn.getAttribute('data-src');
+      setSource(src, btn.textContent || 'Remote video');
+    });
+  });
+
+  // file chooser -> local file playback
+  fileInput.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    // optional size check (eg limit to 200MB)
+    if (f.size > 500 * 1024 * 1024) {
+      if (!confirm('File is large — continue?')) return;
+    }
+    const objUrl = URL.createObjectURL(f);
+    currentObjectUrl = objUrl;
+    setSource(objUrl, f.name);
+  });
+
+  // reset to default remote
+  resetBtn.addEventListener('click', () => {
+    setSource(defaultSrc, 'Demo 1');
+    fileInput.value = ''; // clear selection
+  });
+
+  // improve UX: show play on touch for autoplay-blocking browsers
+  player.addEventListener('click', () => {
+    if (player.paused) player.play();
+    else player.pause();
+  });
+
+  // show ready state
+  player.addEventListener('loadeddata', () => {
+    // try to unmute after user interaction
+    nowInfo.textContent = nowInfo.textContent + ' • Ready';
+  });
+</script>
 </body>
 </html>
